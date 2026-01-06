@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       name: companyData.name,
       thumbnailImageUrl: companyData.thumbnailImageUrl,
       detailImageUrls: companyData.detailImageUrls || [],
-      category: companyData.category,
       tags: companyData.tags || [],
       introText: companyData.introText,
       detailText: companyData.detailText,
@@ -57,13 +56,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get("category") || undefined;
     const tagsParam = searchParams.get("tags");
     const tags = tagsParam ? tagsParam.split(",") : undefined;
     const searchQuery = searchParams.get("search") || undefined;
 
     const companies = await CompanyService.getCompanies({
-      category,
       tags,
       searchQuery,
     });

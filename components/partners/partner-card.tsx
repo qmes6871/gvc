@@ -8,7 +8,6 @@ interface PartnerCardProps {
   id: number;
   name: string;
   imageUrl: string | null;
-  category?: string;
   tags: string[];
   introText?: string;
   price?: number | null;
@@ -18,7 +17,6 @@ export function PartnerCard({
   id,
   name,
   imageUrl,
-  category,
   tags,
   introText,
   price,
@@ -52,35 +50,19 @@ export function PartnerCard({
           {/* 구분선 */}
           <hr className="border-gray-200 mb-3" />
 
-          {/* 카테고리 */}
-          {category && (
-            <div className="mb-2">
-              <Badge
-                variant="default"
-                className="bg-[#124DD8] text-white hover:bg-[#0d3da8]"
-              >
-                {category}
-              </Badge>
-            </div>
-          )}
-
           {/* 태그 */}
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {tags.slice(0, 3).map((tag) => (
                 <Badge
                   key={tag}
-                  variant="secondary"
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  className="bg-primary text-white"
                 >
                   {tag}
                 </Badge>
               ))}
               {tags.length > 3 && (
-                <Badge
-                  variant="secondary"
-                  className="bg-gray-50 text-gray-500"
-                >
+                <Badge>
                   +{tags.length - 3}
                 </Badge>
               )}

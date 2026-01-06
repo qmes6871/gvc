@@ -14,7 +14,6 @@ interface CompanyFormData {
   name: string;
   thumbnailImageUrl: string | null;
   detailImageUrls: string[];
-  category: string;
   tags: string[];
   introText: string;
   detailText: string;
@@ -36,7 +35,6 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit }: PartnerF
 
   // 폼 상태
   const [name, setName] = useState(initialData?.name || "");
-  const [category, setCategory] = useState(initialData?.category || "");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [introText, setIntroText] = useState(initialData?.introText || "");
@@ -140,9 +138,6 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit }: PartnerF
       if (!name.trim()) {
         throw new Error("병원명을 입력해주세요.");
       }
-      if (!category.trim()) {
-        throw new Error("카테고리를 입력해주세요.");
-      }
       if (!introText.trim()) {
         throw new Error("소개 텍스트를 입력해주세요.");
       }
@@ -182,7 +177,6 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit }: PartnerF
         name,
         thumbnailImageUrl: thumbnailUrl,
         detailImageUrls,
-        category,
         tags,
         introText,
         detailText,
@@ -271,24 +265,6 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit }: PartnerF
               required
               maxLength={100}
             />
-          </div>
-
-          {/* 카테고리 */}
-          <div>
-            <Label htmlFor="category">
-              카테고리 <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="예: 성형외과, 피부과, 치과"
-              required
-              maxLength={50}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              진료 카테고리를 입력해주세요
-            </p>
           </div>
 
           {/* 태그 */}

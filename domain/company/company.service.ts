@@ -17,7 +17,6 @@ import { AppError, ERROR_CODES } from "../common/types";
 export interface GetCompaniesOptions {
   page?: number;
   limit?: number;
-  category?: string;
   tags?: string[];
   searchQuery?: string;
 }
@@ -53,7 +52,6 @@ export class CompanyService {
         name: payload.name,
         thumbnail_image_url: payload.thumbnailImageUrl || null,
         detail_image_urls: payload.detailImageUrls || [],
-        category: payload.category,
         tags: payload.tags || [],
         intro_text: payload.introText,
         detail_text: payload.detailText,
@@ -86,7 +84,6 @@ export class CompanyService {
     const {
       page = 1,
       limit = 10,
-      category,
       tags,
       searchQuery,
     } = options;
@@ -97,11 +94,6 @@ export class CompanyService {
     let query = supabase
       .from(Company.tableName)
       .select("*", { count: "exact" });
-
-    // 카테고리 필터링
-    if (category) {
-      query = query.eq("category", category);
-    }
 
     // 태그 필터링 (배열에 포함된 태그가 하나라도 있으면)
     if (tags && tags.length > 0) {
@@ -197,7 +189,6 @@ export class CompanyService {
     if (payload.name !== undefined) updateData.name = payload.name;
     if (payload.thumbnailImageUrl !== undefined) updateData.thumbnail_image_url = payload.thumbnailImageUrl;
     if (payload.detailImageUrls !== undefined) updateData.detail_image_urls = payload.detailImageUrls;
-    if (payload.category !== undefined) updateData.category = payload.category;
     if (payload.tags !== undefined) updateData.tags = payload.tags;
     if (payload.introText !== undefined) updateData.intro_text = payload.introText;
     if (payload.detailText !== undefined) updateData.detail_text = payload.detailText;

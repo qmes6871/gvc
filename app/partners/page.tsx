@@ -71,8 +71,7 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
 
   const result = await CompanyService.getCompanies({
     page,
-    limit: 12,
-    category,
+    limit: 999,
     tags,
     searchQuery,
   });

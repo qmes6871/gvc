@@ -11,7 +11,6 @@ interface CompanyFormData {
   name: string;
   thumbnailImageUrl: string | null;
   detailImageUrls: string[];
-  category: string;
   tags: string[];
   introText: string;
   detailText: string;
@@ -42,7 +41,6 @@ export default function EditPartnerPage() {
           name: company.name,
           thumbnailImageUrl: company.thumbnailImageUrl || null,
           detailImageUrls: company.detailImageUrls || [],
-          category: company.category || "",
           tags: company.tags || [],
           introText: company.introText || "",
           detailText: company.detailText || "",
@@ -68,7 +66,6 @@ export default function EditPartnerPage() {
         name: data.name,
         thumbnailImageUrl: data.thumbnailImageUrl,
         detailImageUrls: data.detailImageUrls,
-        category: data.category,
         tags: data.tags,
         introText: data.introText,
         detailText: data.detailText,

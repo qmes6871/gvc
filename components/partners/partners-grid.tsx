@@ -16,7 +16,6 @@ export function PartnersGrid({ companies }: PartnersGridProps) {
           id={company.id}
           name={company.name || "병원명 없음"}
           imageUrl={company.thumbnailImageUrl || null}
-          category={company.category}
           tags={company.tags || []}
           introText={company.introText}
           price={company.price}

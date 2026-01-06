@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS t_companies (
   name VARCHAR(100) NOT NULL,
   thumbnail_image_url TEXT,
   detail_image_urls TEXT[] DEFAULT '{}',
-  category VARCHAR(50),
   tags TEXT[] DEFAULT '{}',
   intro_text VARCHAR(500),
   detail_text TEXT,
@@ -18,8 +17,6 @@ CREATE TABLE IF NOT EXISTS t_companies (
 
 -- 병원명으로 검색을 위한 인덱스
 CREATE INDEX idx_companies_name ON t_companies(name);
--- 카테고리 검색을 위한 인덱스
-CREATE INDEX idx_companies_category ON t_companies(category);
 -- 태그 검색을 위한 GIN 인덱스
 CREATE INDEX idx_companies_tags ON t_companies USING GIN(tags);
 -- 생성일자로 정렬을 위한 인덱스

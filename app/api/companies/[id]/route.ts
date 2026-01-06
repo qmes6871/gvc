@@ -80,7 +80,6 @@ export async function PUT(
     if (companyData.name !== undefined) payload.name = companyData.name;
     if (companyData.thumbnailImageUrl !== undefined) payload.thumbnailImageUrl = companyData.thumbnailImageUrl;
     if (companyData.detailImageUrls !== undefined) payload.detailImageUrls = companyData.detailImageUrls;
-    if (companyData.category !== undefined) payload.category = companyData.category;
     if (companyData.tags !== undefined) payload.tags = companyData.tags;
     if (companyData.introText !== undefined) payload.introText = companyData.introText;
     if (companyData.detailText !== undefined) payload.detailText = companyData.detailText;

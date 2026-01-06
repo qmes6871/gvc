@@ -7,7 +7,6 @@ interface CompanyFormData {
   name: string;
   thumbnailImageUrl: string | null;
   detailImageUrls: string[];
-  category: string;
   tags: string[];
   introText: string;
   detailText: string;
@@ -26,7 +25,6 @@ export default function RegisterPartnerPage() {
         name: data.name,
         thumbnailImageUrl: data.thumbnailImageUrl,
         detailImageUrls: data.detailImageUrls,
-        category: data.category,
         tags: data.tags,
         introText: data.introText,
         detailText: data.detailText,

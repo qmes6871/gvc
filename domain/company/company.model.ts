@@ -12,9 +12,8 @@ export class Company {
 
   id: number;
   name: string; // 병원명
-  thumbnailImageUrl?: string | null; // 미리보기 이미지
+  thumbnailImageUrl?: string | null; // 미리보기 이미지\
   detailImageUrls: string[]; // 상세 이미지 배열
-  category?: string; // 진료 카테고리 (예: 성형외과, 피부과 등)
   tags: string[]; // 병원 특징 태그 배열
   introText?: string; // 소개 텍스트 (간단한 설명)
   detailText?: string; // 상세 텍스트 (상세 설명)
@@ -27,7 +26,6 @@ export class Company {
     name: string;
     thumbnail_image_url?: string | null;
     detail_image_urls?: string[];
-    category?: string;
     tags?: string[];
     intro_text?: string;
     detail_text?: string;
@@ -39,7 +37,6 @@ export class Company {
     this.name = data.name;
     this.thumbnailImageUrl = data.thumbnail_image_url;
     this.detailImageUrls = data.detail_image_urls || [];
-    this.category = data.category;
     this.tags = data.tags || [];
     this.introText = data.intro_text;
     this.detailText = data.detail_text;
@@ -84,10 +81,6 @@ export const CreateCompanySchema = z.object({
     .array(z.string().url("유효한 이미지 URL이 아닙니다."))
     .optional()
     .default([]),
-  category: z
-    .string()
-    .min(1, { message: "카테고리를 입력해주세요." })
-    .max(50, { message: "카테고리는 50자를 넘을 수 없습니다." }),
   tags: z
     .array(z.string().max(50, { message: "태그는 50자를 넘을 수 없습니다." }))
     .optional()
@@ -126,11 +119,6 @@ export const UpdateCompanySchema = z.object({
   detailImageUrls: z
     .array(z.string().url("유효한 이미지 URL이 아닙니다."))
     .optional(),
-  category: z
-    .string()
-    .min(1, { message: "카테고리를 입력해주세요." })
-    .max(50, { message: "카테고리는 50자를 넘을 수 없습니다." })
-    .optional(),
   tags: z
     .array(z.string().max(50, { message: "태그는 50자를 넘을 수 없습니다." }))
     .optional(),
@@ -163,7 +151,6 @@ export const CompanyDtoSchema = z.object({
   name: z.string().optional(),
   thumbnailImageUrl: z.string().url().or(z.literal("")).nullable().optional(),
   detailImageUrls: z.array(z.string().url()).optional(),
-  category: z.string().optional(),
   tags: z.array(z.string()).optional(),
   introText: z.string().optional(),
   detailText: z.string().optional(),
@@ -188,7 +175,6 @@ export function toCompanyDto(company: Company): CompanyDto {
     name: company.name,
     thumbnailImageUrl: company.thumbnailImageUrl || null,
     detailImageUrls: company.detailImageUrls,
-    category: company.category,
     tags: company.tags,
     introText: company.introText,
     detailText: company.detailText,

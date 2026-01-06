@@ -31,11 +31,6 @@ async function PartnerDetailContent({ id }: { id: number }) {
           
           {/* 카테고리 및 가격 정보 */}
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            {company.category && (
-              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#124DD8] text-white">
-                {company.category}
-              </span>
-            )}
             {company.price && (
               <span className="text-2xl font-bold text-[#124DD8]">
                 {company.price.toLocaleString()}원~
