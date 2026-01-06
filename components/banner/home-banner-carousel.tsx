@@ -14,11 +14,6 @@ interface HomeBannerCarouselProps {
 }
 
 export function HomeBannerCarousel({ banners }: HomeBannerCarouselProps) {
-  // 배너가 없으면 아무것도 렌더링하지 않음
-  if (!banners || banners.length === 0) {
-    return null;
-  }
-
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { 
       loop: true,

@@ -13,9 +13,6 @@ export * from "./company";
 // Inquiry 도메인
 export * from "./inquiry";
 
-// Content 도메인
-export * from "./content";
-
 // 공통 타입 및 유틸리티
 export * from "./common/types";
 export * from "./common/response";

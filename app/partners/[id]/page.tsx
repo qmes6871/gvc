@@ -5,9 +5,7 @@ import Image from "next/image";
 import { MainLayout } from "@/components/layout/main-layout";
 import { CompanyService } from "@/domain/company/company.service";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2, MessageCircle } from "lucide-react";
-import { Loader2 } from "lucide-react";
-import { PartnerDetailActions } from "@/components/partners/partner-detail-actions";
+import { ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
 
 interface PartnerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -21,61 +19,21 @@ async function PartnerDetailContent({ id }: { id: number }) {
   }
 
   return (
-    <div className="space-y-12">
-      {/* 제목과 버튼 */}
-      <div className="relative">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            {company.name}
-          </h1>
-          
-          {/* 카테고리 및 가격 정보 */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {company.price && (
-              <span className="text-2xl font-bold text-[#124DD8]">
-                {company.price.toLocaleString()}원~
-              </span>
-            )}
-          </div>
-        </div>
-        
-        {/* 수정/삭제 버튼 - 오른쪽 정렬 */}
-        <div className="flex justify-end mt-2">
-          <PartnerDetailActions companyId={id} companyName={company.name || "병원"} />
-        </div>
+    <div className="space-y-8">
+      {/* 제목 */}
+      <div className="text-center">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">
+          {company.name}
+        </h1>
       </div>
-
-      {/* 태그 */}
-      {company.tags && company.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 justify-center">
-          {company.tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* 소개 텍스트 */}
-      {company.introText && (
-        <div className="bg-white rounded-lg p-6 shadow-sm border">
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">소개</h2>
-          <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
-            {company.introText}
-          </p>
-        </div>
-      )}
 
       {/* 상세 이미지들 */}
       {company.detailImageUrls && company.detailImageUrls.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {company.detailImageUrls.map((imageUrl, index) => (
             <div
               key={index}
-              className="relative w-full aspect-video rounded-lg overflow-hidden border shadow-lg"
+              className="relative w-full aspect-video overflow-hidden"
             >
               <Image
                 src={imageUrl}
@@ -85,18 +43,6 @@ async function PartnerDetailContent({ id }: { id: number }) {
               />
             </div>
           ))}
-        </div>
-      )}
-
-      {/* 상세 설명 */}
-      {company.detailText && (
-        <div className="bg-white rounded-lg p-6 shadow-sm border">
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">상세 정보</h2>
-          <div className="prose max-w-none">
-            <p className="text-gray-700 text-base md:text-lg whitespace-pre-wrap leading-relaxed">
-              {company.detailText}
-            </p>
-          </div>
         </div>
       )}
 

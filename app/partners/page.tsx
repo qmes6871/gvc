@@ -84,39 +84,8 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
-      {/* 페이지 헤더 */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-          병원 찾기
-        </h1>
-        <p className="text-sm md:text-base text-gray-600">
-          다양한 진료 분야의 전문 병원을 찾아보세요
-        </p>
-      </div>
-
       {/* 배너 캐러셀 */}
-      <HomeBannerCarousel banners={banners} />
-
-      {/* 검색 결과 정보 */}
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-gray-600">
-          총 <span className="font-semibold">{result.total}</span>개의 병원
-        </p>
-        {(category || tags) && (
-          <div className="flex flex-wrap gap-2">
-            {category && (
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                {category}
-              </span>
-            )}
-            {tags?.map((tag) => (
-              <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      {banners.length > 0 && <HomeBannerCarousel banners={banners} />}
 
       {/* 병원 그리드 */}
       <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
