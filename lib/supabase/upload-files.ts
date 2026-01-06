@@ -2,7 +2,7 @@ import { createClient } from "./client";
 import { v4 as uuidv4 } from "uuid";
 
 // bucket name
-const DEFAULT_BUCKET = "foodlink-public";
+const DEFAULT_BUCKET = "gvc-public";
 
 
 /**
