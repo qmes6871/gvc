@@ -1,16 +1,14 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PartnerSearchForm } from "@/components/partners/partner-search-form";
 import { PartnersGrid } from "@/components/partners/partners-grid";
 import { CompanyService } from "@/domain/company/company.service";
 import { PlusCircle } from "lucide-react";
-import type { PrimaryCategory, SecondaryCategory } from "@/domain/company/company.model";
 import { MainLayout } from "@/components/layout/main-layout";
 
 interface SearchParams {
-  primaryCategory?: string;
-  secondaryCategory?: string;
+  category?: string;
+  tags?: string;
   search?: string;
   page?: string;
 }
@@ -30,18 +28,11 @@ export default function PartnersPage({ searchParams }: PartnersPageProps) {
               {/* 페이지 헤더 */}
               <div className="mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                  파트너 찾기
+                  병원 찾기
                 </h1>
                 <p className="text-gray-600">
-                  다양한 분야의 전문 파트너사를 찾아보세요
+                  다양한 진료 분야의 전문 병원을 찾아보세요
                 </p>
-              </div>
-
-              {/* 검색 폼 */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-                <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
-                  <PartnerSearchForm />
-                </Suspense>
               </div>
 
               {/* 로딩 스켈레톤 */}
@@ -72,18 +63,18 @@ export default function PartnersPage({ searchParams }: PartnersPageProps) {
 async function PartnersContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   
-  const primaryCategory = params.primaryCategory as PrimaryCategory | undefined;
-  const secondaryCategory = params.secondaryCategory as SecondaryCategory | undefined;
+  const category = params.category;
+  const tagsParam = params.tags;
+  const tags = tagsParam ? tagsParam.split(",") : undefined;
   const searchQuery = params.search;
   const page = parseInt(params.page || "1", 10);
 
   const result = await CompanyService.getCompanies({
     page,
     limit: 12,
-    primaryCategory: primaryCategory || "all",
-    secondaryCategory: secondaryCategory || "all",
+    category,
+    tags,
     searchQuery,
-    includeDetails: true,
   });
 
   return (
@@ -91,28 +82,35 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
       {/* 페이지 헤더 */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-          파트너 찾기
+          병원 찾기
         </h1>
         <p className="text-sm md:text-base text-gray-600">
-          다양한 분야의 전문 파트너사를 찾아보세요
+          다양한 진료 분야의 전문 병원을 찾아보세요
         </p>
-      </div>
-
-      {/* 검색 폼 */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-        <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
-          <PartnerSearchForm />
-        </Suspense>
       </div>
 
       {/* 검색 결과 정보 */}
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-gray-600">
-          총 <span className="font-semibold">{result.total}</span>개의 파트너사
+          총 <span className="font-semibold">{result.total}</span>개의 병원
         </p>
+        {(category || tags) && (
+          <div className="flex flex-wrap gap-2">
+            {category && (
+              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
+                {category}
+              </span>
+            )}
+            {tags?.map((tag) => (
+              <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 파트너사 그리드 */}
+      {/* 병원 그리드 */}
       <Suspense fallback={<div className="h-10 bg-gray-200 rounded animate-pulse" />}>
         {result.companies.length > 0 ? (
           <PartnersGrid companies={result.companies} />
@@ -125,19 +123,6 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
           </div>
         )}
       </Suspense>
-
-      {/* 파트너사 등록 CTA */}
-      <div className="mt-12 flex justify-center">
-        <Link href="/partners/register">
-          <Button
-            size="lg"
-            className="bg-black hover:bg-gray-800 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
-          >
-            <PlusCircle className="mr-2 h-5 w-5" />
-            파트너사 등록하기
-          </Button>
-        </Link>
-      </div>
     </div>
   );
 }

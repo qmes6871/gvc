@@ -14,10 +14,10 @@ export class Company {
   name: string; // 병원명
   thumbnailImageUrl?: string | null; // 미리보기 이미지
   detailImageUrls: string[]; // 상세 이미지 배열
-  category: string; // 진료 카테고리 (예: 성형외과, 피부과 등)
+  category?: string; // 진료 카테고리 (예: 성형외과, 피부과 등)
   tags: string[]; // 병원 특징 태그 배열
-  introText: string; // 소개 텍스트 (간단한 설명)
-  detailText: string; // 상세 텍스트 (상세 설명)
+  introText?: string; // 소개 텍스트 (간단한 설명)
+  detailText?: string; // 상세 텍스트 (상세 설명)
   price?: number | null; // 시술 비용
   createdAt: Date;
   updatedAt?: Date;
@@ -27,10 +27,10 @@ export class Company {
     name: string;
     thumbnail_image_url?: string | null;
     detail_image_urls?: string[];
-    category: string;
+    category?: string;
     tags?: string[];
-    intro_text: string;
-    detail_text: string;
+    intro_text?: string;
+    detail_text?: string;
     price?: number | null;
     created_at: string | Date;
     updated_at?: string | Date;
@@ -160,15 +160,15 @@ export type UpdateCompanyPayload = z.infer<typeof UpdateCompanySchema>;
  */
 export const CompanyDtoSchema = z.object({
   id: z.number(),
-  name: z.string(),
-  thumbnailImageUrl: z.string().url().or(z.literal("")).nullable(),
-  detailImageUrls: z.array(z.string().url()),
-  category: z.string(),
-  tags: z.array(z.string()),
-  introText: z.string(),
-  detailText: z.string(),
-  price: z.number().nullable(),
-  createdAt: z.date(),
+  name: z.string().optional(),
+  thumbnailImageUrl: z.string().url().or(z.literal("")).nullable().optional(),
+  detailImageUrls: z.array(z.string().url()).optional(),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  introText: z.string().optional(),
+  detailText: z.string().optional(),
+  price: z.number().nullable().optional(),
+  createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
 

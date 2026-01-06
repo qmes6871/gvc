@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS t_companies (
   name VARCHAR(100) NOT NULL,
   thumbnail_image_url TEXT,
   detail_image_urls TEXT[] DEFAULT '{}',
-  category VARCHAR(50) NOT NULL,
+  category VARCHAR(50),
   tags TEXT[] DEFAULT '{}',
-  intro_text VARCHAR(500) NOT NULL,
-  detail_text TEXT NOT NULL,
+  intro_text VARCHAR(500),
+  detail_text TEXT,
   price INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -52,23 +52,21 @@ CREATE INDEX idx_inquiries_is_answered ON t_inquiries(is_answered);
 CREATE INDEX idx_inquiries_created_at ON t_inquiries(created_at DESC);
 CREATE INDEX idx_inquiries_nationality ON t_inquiries(nationality);
 
--- 3. 공식 콘텐츠 테이블
-CREATE TABLE IF NOT EXISTS t_contents (
+-- 3. 홈 배너 이미지 테이블
+CREATE TABLE IF NOT EXISTS t_home_banners (
   id SERIAL PRIMARY KEY,
-  title VARCHAR(200) NOT NULL,
-  thumbnail_url TEXT,
-  content TEXT NOT NULL,
-  image_urls TEXT[] DEFAULT '{}',
-  password_hash VARCHAR(255) NOT NULL,
-  view_count INTEGER DEFAULT 0,
-  is_pinned BOOLEAN DEFAULT FALSE,
+  image_url TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  link_url TEXT, -- 배너 클릭 시 이동할 URL (선택사항)
+  alt_text VARCHAR(200), -- 이미지 대체 텍스트
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 고정된 게시물 및 생성일로 정렬을 위한 인덱스
-CREATE INDEX idx_contents_is_pinned ON t_contents(is_pinned DESC, created_at DESC);
-CREATE INDEX idx_contents_created_at ON t_contents(created_at DESC);
+-- 배너 순서 및 활성화 상태로 조회를 위한 인덱스
+CREATE INDEX idx_home_banners_display_order ON t_home_banners(display_order ASC) WHERE is_active = TRUE;
+CREATE INDEX idx_home_banners_is_active ON t_home_banners(is_active);
 
 -- 자동 업데이트 트리거 함수
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -85,68 +83,38 @@ CREATE TRIGGER update_companies_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_company_details_updated_at
-  BEFORE UPDATE ON t_company_details
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_inquiries_updated_at
   BEFORE UPDATE ON t_inquiries
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_contents_updated_at
-  BEFORE UPDATE ON t_contents
+CREATE TRIGGER update_home_banners_updated_at
+  BEFORE UPDATE ON t_home_banners
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Row Level Security (RLS) 설정 (Supabase 사용 시)
 
--- 회사 정보: 승인된 회사만 공개 조회 가능
+-- 병원 정보: 모두 공개 조회 가능
 ALTER TABLE t_companies ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view approved companies"
+CREATE POLICY "Anyone can view companies"
   ON t_companies FOR SELECT
-  USING (approval_status = 'approved');
+  USING (true);
 
 CREATE POLICY "Anyone can insert companies"
   ON t_companies FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Anyone can update their own company"
+CREATE POLICY "Anyone can update companies"
   ON t_companies FOR UPDATE
   USING (true);
 
-CREATE POLICY "Anyone can delete their own company"
+CREATE POLICY "Anyone can delete companies"
   ON t_companies FOR DELETE
   USING (true);
 
--- 회사 상세 정보: 승인된 회사의 정보만 공개 조회 가능
-ALTER TABLE t_company_details ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can view approved company details"
-  ON t_company_details FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM t_companies
-      WHERE t_companies.id = t_company_details.company_id
-      AND t_companies.approval_status = 'approved'
-    )
-  );
-
-CREATE POLICY "Anyone can insert company details"
-  ON t_company_details FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "Anyone can update company details"
-  ON t_company_details FOR UPDATE
-  USING (true);
-
-CREATE POLICY "Anyone can delete company details"
-  ON t_company_details FOR DELETE
-  USING (true);
-
--- 1:1 문의: 관리자만 조회 가능 (서버 사이드에서 처리)
+-- 문의: 관리자만 조회 가능 (서버 사이드에서 처리)
 ALTER TABLE t_inquiries ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service role can manage inquiries"
@@ -157,42 +125,40 @@ CREATE POLICY "Anyone can insert inquiries"
   ON t_inquiries FOR INSERT
   WITH CHECK (true);
 
--- 공식 콘텐츠: 모두 조회 가능
-ALTER TABLE t_contents ENABLE ROW LEVEL SECURITY;
+-- 홈 배너: 모두 조회 가능, 관리자만 수정 가능
+ALTER TABLE t_home_banners ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view contents"
-  ON t_contents FOR SELECT
+CREATE POLICY "Anyone can view active banners"
+  ON t_home_banners FOR SELECT
   USING (true);
 
-CREATE POLICY "Anyone can insert contents"
-  ON t_contents FOR INSERT
+CREATE POLICY "Anyone can insert banners"
+  ON t_home_banners FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Anyone can update contents"
-  ON t_contents FOR UPDATE
+CREATE POLICY "Anyone can update banners"
+  ON t_home_banners FOR UPDATE
   USING (true);
 
-CREATE POLICY "Anyone can delete contents"
-  ON t_contents FOR DELETE
+CREATE POLICY "Anyone can delete banners"
+  ON t_home_banners FOR DELETE
   USING (true);
-
--- 샘플 데이터 (개발용)
--- INSERT INTO t_companies (name, password_hash, approval_status) VALUES
---   ('푸드테크', '$2a$10$...', 'approved'),
---   ('프레시푸드', '$2a$10$...', 'pending');
 
 -- 코멘트 추가
-COMMENT ON TABLE t_companies IS '파트너 회사 기본 정보';
-COMMENT ON TABLE t_company_details IS '파트너 회사 상세 정보 (연락처, 상세 이미지 등)';
+COMMENT ON TABLE t_companies IS '병원 정보';
 COMMENT ON TABLE t_inquiries IS '외국인 방문자 문의 테이블 (시술/검진 관련)';
-COMMENT ON TABLE t_contents IS '공식 콘텐츠';
+COMMENT ON TABLE t_home_banners IS '홈 화면 배너 이미지 관리';
 
-COMMENT ON COLUMN t_companies.approval_status IS '승인 상태: pending(대기), approved(승인), rejected(거부)';
-COMMENT ON COLUMN t_companies.primary_category IS '1차 카테고리';
-COMMENT ON COLUMN t_companies.secondary_category IS '2차 카테고리';
+COMMENT ON COLUMN t_companies.category IS '진료 카테고리 (예: 성형외과, 피부과 등)';
+COMMENT ON COLUMN t_companies.tags IS '병원 특징 태그 배열';
+COMMENT ON COLUMN t_companies.intro_text IS '소개 텍스트 (간단한 설명)';
+COMMENT ON COLUMN t_companies.detail_text IS '상세 텍스트 (상세 설명)';
 COMMENT ON COLUMN t_inquiries.category IS '문의 카테고리: procedure(시술 및 검진 정보 요청), visit(방문 및 여행일정 관련 문의), comprehensive(종합 요청)';
 COMMENT ON COLUMN t_inquiries.visit_timing IS '한국 방문 예정 시기: within_1month(1개월 이내), within_3months(1-3개월 이내), after_3months(3개월 이후)';
 COMMENT ON COLUMN t_inquiries.nationality IS '문의자 국적';
 COMMENT ON COLUMN t_inquiries.city IS '문의자 거주 도시';
 COMMENT ON COLUMN t_inquiries.is_answered IS '답변 완료 여부';
-COMMENT ON COLUMN t_contents.is_pinned IS '상단 고정 여부';
+COMMENT ON COLUMN t_home_banners.display_order IS '배너 표시 순서 (오름차순)';
+COMMENT ON COLUMN t_home_banners.is_active IS '배너 활성화 여부';
+COMMENT ON COLUMN t_home_banners.link_url IS '배너 클릭 시 이동할 URL (선택사항)';
+COMMENT ON COLUMN t_home_banners.alt_text IS '이미지 대체 텍스트';
