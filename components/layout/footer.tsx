@@ -14,15 +14,11 @@ export function Footer() {
             <div className="flex items-center space-x-2">
               <Image
                 src={LogoImg.src}
-                alt="FoodLink Logo"
+                alt="Logo"
                 width={120}
                 height={40}
               />
             </div>
-            <p className="mt-4 text-sm text-gray-600">
-              Food 제조의 모든 과정을
-              <br />한 곳에서 해결하세요
-            </p>
           </div>
 
           {/* 빠른 링크 */}
@@ -86,7 +82,7 @@ export function Footer() {
               사업자 등록번호: 000-00-00000 | 대표자: 곽승보
             </p>
             <p className="text-sm text-gray-500">
-              © 2025 FoodLink. All rights reserved.
+              © GVC Partners. All rights reserved.
             </p>
           </div>
         </div>
