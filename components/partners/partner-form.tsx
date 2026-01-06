@@ -6,30 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  PRIMARY_CATEGORIES,
-  PRIMARY_CATEGORY_LABELS,
-  SECONDARY_CATEGORIES,
-  SECONDARY_CATEGORY_LABELS,
-  type PrimaryCategory,
-  type SecondaryCategory,
-} from "@/domain/company/company.model";
-import { AlertCircle, Loader2, Upload, X } from "lucide-react";
+import { AlertCircle, Loader2, X } from "lucide-react";
 import { uploadImage, uploadMultipleImages } from "@/lib/supabase/upload-files";
 import Image from "next/image";
 
 interface CompanyFormData {
   name: string;
-  description: string;
-  imageUrl: string | null;
-  primaryCategory: PrimaryCategory[];
-  secondaryCategory: SecondaryCategory[];
-  phone: string;
-  email: string;
-  detailImages: string[];
+  thumbnailImageUrl: string | null;
+  detailImageUrls: string[];
+  category: string;
+  tags: string[];
+  introText: string;
   detailText: string;
-  password: string;
+  price: number | null;
+  masterPassword: string;
 }
 
 interface PartnerFormProps {
@@ -47,34 +37,34 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
 
   // 폼 상태
   const [name, setName] = useState(initialData?.name || "");
-  const [description, setDescription] = useState(initialData?.description || "");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
-  const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory[]>(
-    initialData?.primaryCategory || []
+  const [category, setCategory] = useState(initialData?.category || "");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [introText, setIntroText] = useState(initialData?.introText || "");
+  const [detailText, setDetailText] = useState(initialData?.detailText || "");
+  const [price, setPrice] = useState<string>(initialData?.price?.toString() || "");
+  const [masterPassword, setMasterPassword] = useState("");
+
+  // 이미지 상태
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(
+    initialData?.thumbnailImageUrl || null
   );
-  const [secondaryCategory, setSecondaryCategory] = useState<SecondaryCategory[]>(
-    initialData?.secondaryCategory || []
-  );
-  const [phone, setPhone] = useState(initialData?.phone || "");
-  const [email, setEmail] = useState(initialData?.email || "");
   const [detailImageFiles, setDetailImageFiles] = useState<File[]>([]);
   const [detailImagePreviews, setDetailImagePreviews] = useState<string[]>(
-    initialData?.detailImages || []
+    initialData?.detailImageUrls || []
   );
-  const [detailText, setDetailText] = useState(initialData?.detailText || "");
-  const [password, setPassword] = useState("");
 
-  // 대표 이미지 선택 핸들러
-  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 미리보기 이미지 선택 핸들러
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("이미지 크기는 5MB를 초과할 수 없습니다.");
+      if (file.size > 10 * 1024 * 1024) {
+        setError("이미지 크기는 10MB를 초과할 수 없습니다.");
         return;
       }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
       setError(null);
     }
   };
@@ -83,23 +73,24 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
   const handleDetailImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
-    // 이미 이미지가 있으면 교체
-    if (detailImagePreviews.length > 0) {
-      setError("상세 이미지는 최대 1개까지 업로드할 수 있습니다.");
+    if (detailImagePreviews.length + files.length > 10) {
+      setError("상세 이미지는 최대 10개까지 업로드할 수 있습니다.");
       return;
     }
 
-    // 첫 번째 파일만 사용
-    const file = files[0];
-    if (!file) return;
+    const validFiles = files.filter((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        setError(`${file.name}은(는) 10MB를 초과합니다.`);
+        return false;
+      }
+      return true;
+    });
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("이미지는 5MB를 초과할 수 없습니다.");
-      return;
-    }
-
-    setDetailImageFiles([file]);
-    setDetailImagePreviews([URL.createObjectURL(file)]);
+    setDetailImageFiles([...detailImageFiles, ...validFiles]);
+    setDetailImagePreviews([
+      ...detailImagePreviews,
+      ...validFiles.map((file) => URL.createObjectURL(file)),
+    ]);
     setError(null);
   };
 
@@ -109,17 +100,33 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
     setDetailImagePreviews(detailImagePreviews.filter((_, i) => i !== index));
   };
 
-  // 1차 카테고리 선택 (단일 선택)
-  const handlePrimaryCategoryChange = (category: PrimaryCategory) => {
-    setPrimaryCategory([category]);
+  // 태그 추가
+  const addTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (!trimmedTag) return;
+    if (tags.includes(trimmedTag)) {
+      setError("이미 추가된 태그입니다.");
+      return;
+    }
+    if (trimmedTag.length > 50) {
+      setError("태그는 50자를 넘을 수 없습니다.");
+      return;
+    }
+    setTags([...tags, trimmedTag]);
+    setTagInput("");
+    setError(null);
   };
 
-  // 2차 카테고리 선택 (다중 선택)
-  const handleSecondaryCategoryToggle = (category: SecondaryCategory) => {
-    if (secondaryCategory.includes(category)) {
-      setSecondaryCategory(secondaryCategory.filter((c) => c !== category));
-    } else {
-      setSecondaryCategory([...secondaryCategory, category]);
+  // 태그 제거
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  // Enter 키로 태그 추가
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
     }
   };
 
@@ -132,48 +139,56 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
     try {
       // 유효성 검증
       if (!name.trim()) {
-        throw new Error("파트너 명칭을 입력해주세요.");
+        throw new Error("병원명을 입력해주세요.");
       }
-      if (description.length > 100) {
-        throw new Error("간단 소개는 100자를 초과할 수 없습니다.");
+      if (!category.trim()) {
+        throw new Error("카테고리를 입력해주세요.");
       }
-      if (primaryCategory.length === 0) {
-        throw new Error("1차 카테고리를 선택해주세요.");
+      if (!introText.trim()) {
+        throw new Error("소개 텍스트를 입력해주세요.");
       }
-      if (secondaryCategory.length === 0) {
-        throw new Error("2차 카테고리를 최소 1개 이상 선택해주세요.");
+      if (introText.length < 10) {
+        throw new Error("소개 텍스트는 10자 이상 입력해주세요.");
       }
-      // 등록시에만 비밀번호 체크
-      if (mode === "create" && !password) {
-        throw new Error("비밀번호를 입력해주세요.");
+      if (!detailText.trim()) {
+        throw new Error("상세 텍스트를 입력해주세요.");
+      }
+      if (detailText.length < 10) {
+        throw new Error("상세 텍스트는 10자 이상 입력해주세요.");
+      }
+      if (!masterPassword.trim()) {
+        throw new Error("마스터 패스워드를 입력해주세요.");
       }
 
       // 이미지 업로드
-      let mainImageUrl = imagePreview;
-      if (imageFile) {
-        mainImageUrl = await uploadImage(imageFile);
+      let thumbnailUrl = thumbnailPreview;
+      if (thumbnailFile) {
+        thumbnailUrl = await uploadImage(thumbnailFile);
       }
 
-      let detailImageUrls = detailImagePreviews;
+      let detailImageUrls = detailImagePreviews.filter((url) => url.startsWith("http"));
       if (detailImageFiles.length > 0) {
-        const newUrls = await uploadMultipleImages(
-          detailImageFiles,
-        );
-        detailImageUrls = [...detailImagePreviews.filter((url) => url.startsWith("http")), ...newUrls];
+        const newUrls = await uploadMultipleImages(detailImageFiles);
+        detailImageUrls = [...detailImageUrls, ...newUrls];
+      }
+
+      // 가격 파싱
+      const parsedPrice = price.trim() ? parseInt(price) : null;
+      if (price.trim() && (isNaN(parsedPrice!) || parsedPrice! < 0)) {
+        throw new Error("가격은 0 이상의 숫자여야 합니다.");
       }
 
       // 데이터 제출
       await onSubmit({
         name,
-        description,
-        imageUrl: mainImageUrl,
-        primaryCategory,
-        secondaryCategory,
-        phone,
-        email,
-        detailImages: detailImageUrls,
+        thumbnailImageUrl: thumbnailUrl,
+        detailImageUrls,
+        category,
+        tags,
+        introText,
         detailText,
-        password,
+        price: parsedPrice,
+        masterPassword,
       });
 
       // 성공 시 목록으로 이동
@@ -214,160 +229,161 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
         </div>
       )}
 
-      {/* 1차 카테고리 */}
+      {/* 기본 정보 */}
       <Card>
         <CardHeader>
-          <CardTitle>1차 카테고리</CardTitle>
-          <CardDescription>사업 분야를 선택해주세요 (단일 선택)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.values(PRIMARY_CATEGORIES).map((cat) => (
-              <label
-                key={cat}
-                className={`flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  primaryCategory.includes(cat)
-                    ? "border-black bg-gray-100"
-                    : "border-gray-200 hover:border-gray-400"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="primaryCategory"
-                  value={cat}
-                  checked={primaryCategory.includes(cat)}
-                  onChange={() => handlePrimaryCategoryChange(cat)}
-                  className="sr-only"
-                />
-                <span className="font-medium">{PRIMARY_CATEGORY_LABELS[cat]}</span>
-              </label>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 2차 카테고리 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>2차 카테고리</CardTitle>
-          <CardDescription>제품 분야를 선택해주세요 (복수 선택 가능)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.values(SECONDARY_CATEGORIES).map((cat) => (
-              <label
-                key={cat}
-                className={`flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  secondaryCategory.includes(cat)
-                    ? "border-black bg-gray-100"
-                    : "border-gray-200 hover:border-gray-400"
-                }`}
-              >
-                <Checkbox
-                  checked={secondaryCategory.includes(cat)}
-                  onCheckedChange={() => handleSecondaryCategoryToggle(cat)}
-                  className="mr-2"
-                />
-                <span className="font-medium">{SECONDARY_CATEGORY_LABELS[cat]}</span>
-              </label>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 파트너 소개 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>파트너 소개</CardTitle>
-          <CardDescription>기본 정보를 입력해주세요</CardDescription>
+          <CardTitle>기본 정보</CardTitle>
+          <CardDescription>병원의 기본 정보를 입력해주세요</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* 명칭 */}
+          {/* 병원명 */}
           <div>
             <Label htmlFor="name">
-              파트너 명칭 (기업명, 브랜드명) <span className="text-red-500">*</span>
+              병원명 <span className="text-red-500">*</span>
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="예: 푸드링크 주식회사"
+              placeholder="예: 서울성형외과"
               required
               maxLength={100}
             />
           </div>
 
-          {/* 간단 소개 */}
+          {/* 카테고리 */}
           <div>
-            <Label htmlFor="description">
-              간단 소개 (100자 이내)
+            <Label htmlFor="category">
+              카테고리 <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="파트너를 한 줄로 소개해주세요"
-              maxLength={100}
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="예: 성형외과, 피부과, 치과"
+              required
+              maxLength={50}
             />
             <p className="text-xs text-gray-500 mt-1">
-              {description.length}/100자
+              진료 카테고리를 입력해주세요
             </p>
           </div>
 
-          {/* 대표 이미지 */}
+          {/* 태그 */}
           <div>
-            <Label htmlFor="mainImage">대표 이미지</Label>
+            <Label htmlFor="tags">병원 특징 태그</Label>
+            <div className="flex gap-2">
+              <Input
+                id="tags"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInputKeyDown}
+                placeholder="태그를 입력하고 Enter를 누르세요"
+                maxLength={50}
+              />
+              <Button type="button" onClick={addTag} variant="outline">
+                추가
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              병원의 특징을 나타내는 태그를 자유롭게 추가하세요 (예: 쌍꺼풀, 코성형, 리프팅)
+            </p>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 가격 */}
+          <div>
+            <Label htmlFor="price">시술 비용 (원)</Label>
             <Input
-              id="mainImage"
+              id="price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="예: 5000000"
+              min="0"
+              step="10000"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              대표 시술의 평균 비용을 입력하세요 (선택사항)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 이미지 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>이미지</CardTitle>
+          <CardDescription>병원 이미지를 업로드해주세요</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 미리보기 이미지 */}
+          <div>
+            <Label htmlFor="thumbnail">
+              미리보기 이미지 <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="thumbnail"
               type="file"
               accept="image/*"
-              onChange={handleMainImageChange}
+              onChange={handleThumbnailChange}
               className="cursor-pointer"
             />
             <p className="text-xs text-gray-500 mt-1">
-              권장 크기: 800x600px, 최대 5MB
+              권장 크기: 800x600px, 최대 10MB
             </p>
-            {imagePreview && (
-              <div className="mt-3 relative w-40 h-30 rounded-lg overflow-hidden border">
+            {thumbnailPreview && (
+              <div className="mt-3 relative w-60 h-40 rounded-lg overflow-hidden border">
                 <Image
-                  src={imagePreview}
-                  alt="대표 이미지 미리보기"
+                  src={thumbnailPreview}
+                  alt="미리보기 이미지"
                   fill
                   className="object-cover"
                 />
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* 파트너 상세 소개 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>파트너 상세 소개</CardTitle>
-          <CardDescription>상세 정보를 입력해주세요</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           {/* 상세 이미지 */}
           <div>
-            <Label htmlFor="detailImages">
-              상세 이미지 (최대 1개)
-            </Label>
+            <Label htmlFor="detailImages">상세 이미지 (최대 10개)</Label>
             <Input
               id="detailImages"
               type="file"
               accept="image/*"
+              multiple
               onChange={handleDetailImagesChange}
-              disabled={detailImagePreviews.length >= 1}
+              disabled={detailImagePreviews.length >= 10}
               className="cursor-pointer"
             />
             <p className="text-xs text-gray-500 mt-1">
-              이미지 1개 (최대 5MB)
+              이미지 최대 10개 (각 10MB 이하)
             </p>
             {detailImagePreviews.length > 0 && (
               <div className="mt-3 grid grid-cols-3 md:grid-cols-5 gap-3">
                 {detailImagePreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
+                  <div
+                    key={index}
+                    className="relative aspect-square rounded-lg overflow-hidden border group"
+                  >
                     <Image
                       src={preview}
                       alt={`상세 이미지 ${index + 1}`}
@@ -386,80 +402,82 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* 상세 소개 글 */}
+      {/* 텍스트 정보 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>텍스트 정보</CardTitle>
+          <CardDescription>병원 소개 텍스트를 작성해주세요</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 소개 텍스트 */}
           <div>
-            <Label htmlFor="detailText">상세 소개 글</Label>
+            <Label htmlFor="introText">
+              소개 텍스트 (10-500자) <span className="text-red-500">*</span>
+            </Label>
+            <textarea
+              id="introText"
+              value={introText}
+              onChange={(e) => setIntroText(e.target.value)}
+              placeholder="병원을 간단히 소개하는 텍스트를 작성해주세요"
+              rows={3}
+              maxLength={500}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {introText.length}/500자 (최소 10자)
+            </p>
+          </div>
+
+          {/* 상세 텍스트 */}
+          <div>
+            <Label htmlFor="detailText">
+              상세 텍스트 (10-5000자) <span className="text-red-500">*</span>
+            </Label>
             <textarea
               id="detailText"
               value={detailText}
               onChange={(e) => setDetailText(e.target.value)}
-              placeholder="파트너에 대한 상세한 설명을 작성해주세요"
+              placeholder="병원에 대한 상세한 설명을 작성해주세요"
               rows={10}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black resize-y"
+              maxLength={5000}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-y"
+              required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {detailText.length}/5000자 (최소 10자)
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* 연락처 */}
+      {/* 마스터 패스워드 */}
       <Card>
         <CardHeader>
-          <CardTitle>연락처</CardTitle>
-          <CardDescription>문의 가능한 연락처를 입력해주세요</CardDescription>
+          <CardTitle>마스터 패스워드</CardTitle>
+          <CardDescription>
+            {mode === "create" ? "병원 정보 등록을 위해" : "병원 정보 수정/삭제를 위해"} 마스터 패스워드가 필요합니다.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div>
-            <Label htmlFor="phone">전화번호</Label>
+            <Label htmlFor="masterPassword">
+              마스터 패스워드 <span className="text-red-500">*</span>
+            </Label>
             <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="010-1234-5678"
-            />
-          </div>
-          <div>
-            <Label htmlFor="email">이메일</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="contact@example.com"
+              id="masterPassword"
+              type="password"
+              value={masterPassword}
+              onChange={(e) => setMasterPassword(e.target.value)}
+              placeholder="마스터 패스워드를 입력하세요"
+              required
             />
           </div>
         </CardContent>
       </Card>
-
-      {/* 게시물 비밀번호 - 등록시에만 표시 */}
-      {mode === "create" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>게시물 비밀번호</CardTitle>
-            <CardDescription>
-              게시물 수정 및 삭제 시 필요합니다. 안전하게 보관해주세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Label htmlFor="password">
-                비밀번호 <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="4자 이상 입력해주세요"
-                required
-                minLength={4}
-                maxLength={50}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 버튼 */}
       <div className="flex justify-end gap-3">
@@ -483,7 +501,7 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
         </Button>
         <Button
           type="submit"
-          className="bg-black hover:bg-gray-800"
+          className="bg-primary hover:bg-primary/90"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
@@ -492,7 +510,7 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
               처리 중...
             </>
           ) : mode === "create" ? (
-            "제출하기"
+            "등록하기"
           ) : (
             "수정하기"
           )}

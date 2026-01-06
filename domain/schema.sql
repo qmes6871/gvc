@@ -1,43 +1,31 @@
--- 푸드링크 데이터베이스 스키마
+-- GVC 파트너스 데이터베이스 스키마
 -- Supabase/PostgreSQL 기준
 
--- 1. 회사 정보 테이블
+-- 1. 병원 정보 테이블
 CREATE TABLE IF NOT EXISTS t_companies (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  image_url TEXT,
-  password_hash VARCHAR(255) NOT NULL,
-  approval_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
-  primary_category TEXT[] NOT NULL DEFAULT '{}',
-  secondary_category TEXT[] NOT NULL DEFAULT '{}',
+  thumbnail_image_url TEXT,
+  detail_image_urls TEXT[] DEFAULT '{}',
+  category VARCHAR(50) NOT NULL,
+  tags TEXT[] DEFAULT '{}',
+  intro_text VARCHAR(500) NOT NULL,
+  detail_text TEXT NOT NULL,
+  price INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 회사명으로 검색을 위한 인덱스
+-- 병원명으로 검색을 위한 인덱스
 CREATE INDEX idx_companies_name ON t_companies(name);
--- 승인 상태로 필터링을 위한 인덱스
-CREATE INDEX idx_companies_approval_status ON t_companies(approval_status);
--- 카테고리 검색을 위한 GIN 인덱스
-CREATE INDEX idx_companies_primary_category ON t_companies USING GIN(primary_category);
-CREATE INDEX idx_companies_secondary_category ON t_companies USING GIN(secondary_category);
+-- 카테고리 검색을 위한 인덱스
+CREATE INDEX idx_companies_category ON t_companies(category);
+-- 태그 검색을 위한 GIN 인덱스
+CREATE INDEX idx_companies_tags ON t_companies USING GIN(tags);
+-- 생성일자로 정렬을 위한 인덱스
+CREATE INDEX idx_companies_created_at ON t_companies(created_at DESC);
 
--- 2. 회사 상세 정보 테이블
-CREATE TABLE IF NOT EXISTS t_company_details (
-  id SERIAL PRIMARY KEY,
-  company_id INTEGER NOT NULL UNIQUE REFERENCES t_companies(id) ON DELETE CASCADE,
-  phone VARCHAR(20),
-  email VARCHAR(100),
-  detail_images TEXT[] DEFAULT '{}',
-  detail_text TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 회사 ID로 조회를 위한 인덱스
-CREATE INDEX idx_company_details_company_id ON t_company_details(company_id);
-
--- 3. 외국인 방문자 문의 테이블
+-- 2. 외국인 방문자 문의 테이블
 CREATE TABLE IF NOT EXISTS t_inquiries (
   id SERIAL PRIMARY KEY,
   category VARCHAR(50) NOT NULL CHECK (category IN ('procedure', 'visit', 'comprehensive')),
@@ -64,7 +52,7 @@ CREATE INDEX idx_inquiries_is_answered ON t_inquiries(is_answered);
 CREATE INDEX idx_inquiries_created_at ON t_inquiries(created_at DESC);
 CREATE INDEX idx_inquiries_nationality ON t_inquiries(nationality);
 
--- 4. 공식 콘텐츠 테이블
+-- 3. 공식 콘텐츠 테이블
 CREATE TABLE IF NOT EXISTS t_contents (
   id SERIAL PRIMARY KEY,
   title VARCHAR(200) NOT NULL,
