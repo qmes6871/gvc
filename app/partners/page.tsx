@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PartnersGrid } from "@/components/partners/partners-grid";
 import { CompanyService } from "@/domain/company/company.service";
+import { HomeBannerService } from "@/domain/banner/banner.service";
+import { HomeBannerCarousel } from "@/components/banner";
 import { PlusCircle } from "lucide-react";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -69,12 +71,16 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
   const searchQuery = params.search;
   const page = parseInt(params.page || "1", 10);
 
-  const result = await CompanyService.getCompanies({
-    page,
-    limit: 999,
-    tags,
-    searchQuery,
-  });
+  // 병원 목록과 배너 동시 조회
+  const [result, banners] = await Promise.all([
+    CompanyService.getCompanies({
+      page,
+      limit: 999,
+      tags,
+      searchQuery,
+    }),
+    HomeBannerService.getActiveBanners(),
+  ]);
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
@@ -87,6 +93,9 @@ async function PartnersContent({ searchParams }: { searchParams: Promise<SearchP
           다양한 진료 분야의 전문 병원을 찾아보세요
         </p>
       </div>
+
+      {/* 배너 캐러셀 */}
+      <HomeBannerCarousel banners={banners} />
 
       {/* 검색 결과 정보 */}
       <div className="mb-6 flex items-center justify-between">

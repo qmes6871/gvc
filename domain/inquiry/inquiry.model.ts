@@ -224,7 +224,7 @@ export const InquiryDtoSchema = z.object({
   id: z.number(),
   category: z.enum(["procedure", "visit", "comprehensive"]),
   visitTiming: z.enum(["within_1month", "within_3months", "after_3months"]),
-  name: z.string(),
+  name: z.string().nullish(),
   phone: z.string(),
   email: z.string().email(),
   nationality: z.string(),
