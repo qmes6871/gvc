@@ -35,14 +35,6 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contents"
-                  className="text-sm text-gray-600 transition-colors hover:text-black"
-                >
-                  콘텐츠
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/partners"
                   className="text-sm text-gray-600 transition-colors hover:text-black"
                 >

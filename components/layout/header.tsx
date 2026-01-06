@@ -10,9 +10,9 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { href: "/", label: "브랜드소개" },
-    { href: "/contents", label: "콘텐츠" },
-    { href: "/partners", label: "파트너찾기" },
+    { href: "/", label: "인덱스 인증이란" },
+    { href: "/inquiry", label: "문의하기" },
+    { href: "/partners", label: "인증병원 & 상품" },
   ];
 
   return (
