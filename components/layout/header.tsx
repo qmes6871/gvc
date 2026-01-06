@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import LogoImg from "@/assets/foodlink-logo.png";
+import LogoImg from "@/assets/gvc_logo.webp";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

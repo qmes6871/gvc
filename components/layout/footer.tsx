@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import LogoImg from "@/assets/foodlink-logo.png";
+import LogoImg from "@/assets/gvc_logo.webp";
 
 export function Footer() {
   return (
@@ -83,7 +83,7 @@ export function Footer() {
         <div className="mt-8 border-t pt-8">
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-500">
-              사업자 등록번호: 000-00-00000 | 대표자: 강지수
+              사업자 등록번호: 000-00-00000 | 대표자: 곽승보
             </p>
             <p className="text-sm text-gray-500">
               © 2025 FoodLink. All rights reserved.
