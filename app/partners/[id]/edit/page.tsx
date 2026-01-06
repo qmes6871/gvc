@@ -5,20 +5,18 @@ import { useParams } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { PartnerForm } from "@/components/partners/partner-form";
 import { Loader2 } from "lucide-react";
-import type { PrimaryCategory, SecondaryCategory } from "@/domain/company/company.model";
 import Link from "next/link";
 
 interface CompanyFormData {
   name: string;
-  description: string;
-  imageUrl: string | null;
-  primaryCategory: PrimaryCategory[];
-  secondaryCategory: SecondaryCategory[];
-  phone: string;
-  email: string;
-  detailImages: string[];
+  thumbnailImageUrl: string | null;
+  detailImageUrls: string[];
+  category: string;
+  tags: string[];
+  introText: string;
   detailText: string;
-  password: string;
+  price: number | null;
+  masterPassword: string;
 }
 
 export default function EditPartnerPage() {
@@ -27,39 +25,28 @@ export default function EditPartnerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialData, setInitialData] = useState<Partial<CompanyFormData> | null>(null);
-  const [password, setPassword] = useState<string>("");
 
   useEffect(() => {
-    // 세션 스토리지에서 비밀번호 가져오기
-    const storedPassword = sessionStorage.getItem(`partner_pwd_${id}`);
-    if (!storedPassword) {
-      setError("권한이 없습니다. 상세 페이지에서 비밀번호를 확인해주세요.");
-      setLoading(false);
-      return;
-    }
-    setPassword(storedPassword);
-
     const fetchData = async () => {
       try {
         const response = await fetch(`/api/companies/${id}`);
         const result = await response.json();
         
         if (!result.success) {
-          setError(result.error || "파트너를 찾을 수 없습니다.");
+          setError(result.error || "병원을 찾을 수 없습니다.");
           return;
         }
 
-        const data = result.data;
+        const company = result.data;
         setInitialData({
-          name: data.company.name,
-          description: data.detail?.detailText?.substring(0, 100) || "",
-          imageUrl: data.company.imageUrl || null,
-          primaryCategory: data.company.primaryCategory,
-          secondaryCategory: data.company.secondaryCategory,
-          phone: data.detail?.phone || "",
-          email: data.detail?.email || "",
-          detailImages: data.detail?.detailImages || [],
-          detailText: data.detail?.detailText || "",
+          name: company.name,
+          thumbnailImageUrl: company.thumbnailImageUrl || null,
+          detailImageUrls: company.detailImageUrls || [],
+          category: company.category || "",
+          tags: company.tags || [],
+          introText: company.introText || "",
+          detailText: company.detailText || "",
+          price: company.price || null,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "데이터를 불러오는데 실패했습니다.");
@@ -79,48 +66,22 @@ export default function EditPartnerPage() {
       },
       body: JSON.stringify({
         name: data.name,
-        imageUrl: data.imageUrl,
-        primaryCategory: data.primaryCategory,
-        secondaryCategory: data.secondaryCategory,
-        password: password, // 세션에서 가져온 비밀번호 사용
-        detail: {
-          phone: data.phone,
-          email: data.email,
-          detailImages: data.detailImages,
-          detailText: data.detailText,
-        },
+        thumbnailImageUrl: data.thumbnailImageUrl,
+        detailImageUrls: data.detailImageUrls,
+        category: data.category,
+        tags: data.tags,
+        introText: data.introText,
+        detailText: data.detailText,
+        price: data.price,
+        masterPassword: data.masterPassword,
       }),
     });
 
     const result = await response.json();
 
     if (!result.success) {
-      throw new Error(result.error || "파트너 수정에 실패했습니다.");
+      throw new Error(result.error || "병원 수정에 실패했습니다.");
     }
-
-    // 수정 완료 후 세션 스토리지에서 비밀번호 제거
-    sessionStorage.removeItem(`partner_pwd_${id}`);
-  };
-
-  const handleDelete = async () => {
-    const response = await fetch(`/api/companies/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        password,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || "파트너 삭제에 실패했습니다.");
-    }
-
-    // 삭제 완료 후 세션 스토리지에서 비밀번호 제거
-    sessionStorage.removeItem(`partner_pwd_${id}`);
   };
 
   if (loading) {
@@ -161,12 +122,12 @@ export default function EditPartnerPage() {
           {/* 페이지 헤더 */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              파트너 정보 수정
+              병원 정보 수정
             </h1>
             <p className="text-gray-600">
-              파트너 정보를 수정하거나 삭제할 수 있습니다.
+              병원 정보를 수정하거나 삭제할 수 있습니다.
               <br />
-              수정 또는 삭제를 위해서는 등록 시 입력한 비밀번호가 필요합니다.
+              수정 또는 삭제를 위해서는 마스터 패스워드가 필요합니다.
             </p>
           </div>
 
@@ -176,14 +137,6 @@ export default function EditPartnerPage() {
             initialData={initialData}
             companyId={id}
             onSubmit={handleSubmit}
-            onDelete={async () => {
-              const confirmed = confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.");
-              if (confirmed) {
-                await handleDelete();
-              } else {
-                throw new Error("삭제가 취소되었습니다.");
-              }
-            }}
           />
         </div>
       </div>

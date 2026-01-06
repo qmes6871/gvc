@@ -47,7 +47,7 @@ export function PasswordVerifyModal({
       }
 
       // 비밀번호 검증 API 호출
-      const response = await fetch(`/api/companies/${companyId}/verify-password`, {
+      const response = await fetch(`/api/verify-master-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export function PasswordVerifyModal({
       }
 
       // 비밀번호 검증 API 호출
-      const response = await fetch(`/api/companies/${companyId}/verify-password`, {
+      const response = await fetch(`/api/verify-master-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

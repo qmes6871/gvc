@@ -27,10 +27,9 @@ interface PartnerFormProps {
   initialData?: Partial<CompanyFormData>;
   companyId?: number;
   onSubmit: (data: CompanyFormData) => Promise<void>;
-  onDelete?: () => Promise<void>;
 }
 
-export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }: PartnerFormProps) {
+export function PartnerForm({ mode, initialData, companyId, onSubmit }: PartnerFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,14 +202,37 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
 
   // 삭제 핸들러
   const handleDelete = async () => {
-    if (!onDelete) return;
+    if (!companyId) return;
+
+    if (!masterPassword) {
+      setError("마스터 패스워드를 입력해주세요.");
+      return;
+    }
 
     const confirmed = confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.");
     if (!confirmed) return;
 
     setIsSubmitting(true);
+    setError(null);
+    
     try {
-      await onDelete();
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          masterPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "삭제에 실패했습니다.");
+      }
+
+      alert("병원 정보가 삭제되었습니다.");
       router.push("/partners");
       router.refresh();
     } catch (err) {
@@ -481,7 +503,7 @@ export function PartnerForm({ mode, initialData, companyId, onSubmit, onDelete }
 
       {/* 버튼 */}
       <div className="flex justify-end gap-3">
-        {mode === "edit" && onDelete && (
+        {mode === "edit" && companyId && (
           <Button
             type="button"
             variant="destructive"

@@ -14,54 +14,94 @@ interface PartnerDetailPageProps {
 }
 
 async function PartnerDetailContent({ id }: { id: number }) {
-  const result = await CompanyService.getCompanyById(id);
+  const company = await CompanyService.getCompanyById(id);
 
-  if (!result) {
+  if (!company) {
     notFound();
   }
-
-  const { company, detail } = result;
-
-  // 승인되지 않은 회사는 접근 불가
-  if (!company.isApproved()) {
-    notFound();
-  }
-
-  // 첫 번째 상세 이미지
-  const firstDetailImage = detail?.detailImages?.[0];
 
   return (
     <div className="space-y-12">
       {/* 제목과 버튼 */}
       <div className="relative">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 text-center mb-4">
-          {company.name}
-        </h1>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            {company.name}
+          </h1>
+          
+          {/* 카테고리 및 가격 정보 */}
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            {company.category && (
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#124DD8] text-white">
+                {company.category}
+              </span>
+            )}
+            {company.price && (
+              <span className="text-2xl font-bold text-[#124DD8]">
+                {company.price.toLocaleString()}원~
+              </span>
+            )}
+          </div>
+        </div>
         
         {/* 수정/삭제 버튼 - 오른쪽 정렬 */}
         <div className="flex justify-end mt-2">
-          <PartnerDetailActions companyId={id} companyName={company.name} />
+          <PartnerDetailActions companyId={id} companyName={company.name || "병원"} />
         </div>
       </div>
 
-      {/* 상세 이미지 1장 */}
-      {firstDetailImage && (
-        <div className="relative w-full aspect-video rounded-lg overflow-hidden border shadow-lg">
-          <Image
-            src={firstDetailImage}
-            alt={`${company.name} 상세 이미지`}
-            fill
-            className="object-cover"
-          />
+      {/* 태그 */}
+      {company.tags && company.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 justify-center">
+          {company.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700"
+            >
+              #{tag}
+            </span>
+          ))}
         </div>
       )}
 
-      {/* 상세 텍스트 */}
-      {detail?.detailText && (
-        <div className="prose max-w-none">
-          <p className="text-gray-700 text-base md:text-lg whitespace-pre-wrap leading-relaxed">
-            {detail.detailText}
+      {/* 소개 텍스트 */}
+      {company.introText && (
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">소개</h2>
+          <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
+            {company.introText}
           </p>
+        </div>
+      )}
+
+      {/* 상세 이미지들 */}
+      {company.detailImageUrls && company.detailImageUrls.length > 0 && (
+        <div className="space-y-6">
+          {company.detailImageUrls.map((imageUrl, index) => (
+            <div
+              key={index}
+              className="relative w-full aspect-video rounded-lg overflow-hidden border shadow-lg"
+            >
+              <Image
+                src={imageUrl}
+                alt={`${company.name || "병원"} 상세 이미지 ${index + 1}`}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 상세 설명 */}
+      {company.detailText && (
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">상세 정보</h2>
+          <div className="prose max-w-none">
+            <p className="text-gray-700 text-base md:text-lg whitespace-pre-wrap leading-relaxed">
+              {company.detailText}
+            </p>
+          </div>
         </div>
       )}
 
@@ -70,7 +110,7 @@ async function PartnerDetailContent({ id }: { id: number }) {
         <Link href={`/inquiry?companyId=${id}`}>
           <Button 
             size="lg" 
-            className="bg-black hover:bg-gray-800 text-white text-lg px-8 py-6 gap-3"
+            className="bg-[#124DD8] hover:bg-[#0d3da8] text-white text-lg px-8 py-6 gap-3"
           >
             <MessageCircle className="h-5 w-5" />
             문의하기
