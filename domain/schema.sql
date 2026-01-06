@@ -37,16 +37,18 @@ CREATE TABLE IF NOT EXISTS t_company_details (
 -- 회사 ID로 조회를 위한 인덱스
 CREATE INDEX idx_company_details_company_id ON t_company_details(company_id);
 
--- 3. 파트너사별 문의 테이블
+-- 3. 외국인 방문자 문의 테이블
 CREATE TABLE IF NOT EXISTS t_inquiries (
   id SERIAL PRIMARY KEY,
-  company_id INTEGER NOT NULL REFERENCES t_companies(id) ON DELETE CASCADE,
-  category VARCHAR(50) NOT NULL CHECK (category IN ('purchase', 'partnership', 'other')),
-  content TEXT NOT NULL,
-  attachments TEXT[] DEFAULT '{}',
-  name VARCHAR(50) NOT NULL,
+  category VARCHAR(50) NOT NULL CHECK (category IN ('procedure', 'visit', 'comprehensive')),
+  visit_timing VARCHAR(50) NOT NULL CHECK (visit_timing IN ('within_1month', 'within_3months', 'after_3months')),
+  name VARCHAR(50), -- 익명 가능
   phone VARCHAR(20) NOT NULL,
   email VARCHAR(100) NOT NULL,
+  nationality VARCHAR(50) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  content TEXT NOT NULL,
+  attachments TEXT[] DEFAULT '{}',
   password_hash VARCHAR(255) NOT NULL,
   ip_address VARCHAR(45), -- IPv6 지원
   user_agent TEXT,
@@ -55,11 +57,12 @@ CREATE TABLE IF NOT EXISTS t_inquiries (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 파트너사 ID, 카테고리 및 답변 상태로 필터링을 위한 인덱스
-CREATE INDEX idx_inquiries_company_id ON t_inquiries(company_id);
+-- 카테고리 및 답변 상태로 필터링을 위한 인덱스
 CREATE INDEX idx_inquiries_category ON t_inquiries(category);
+CREATE INDEX idx_inquiries_visit_timing ON t_inquiries(visit_timing);
 CREATE INDEX idx_inquiries_is_answered ON t_inquiries(is_answered);
 CREATE INDEX idx_inquiries_created_at ON t_inquiries(created_at DESC);
+CREATE INDEX idx_inquiries_nationality ON t_inquiries(nationality);
 
 -- 4. 공식 콘텐츠 테이블
 CREATE TABLE IF NOT EXISTS t_contents (
@@ -193,12 +196,15 @@ CREATE POLICY "Anyone can delete contents"
 -- 코멘트 추가
 COMMENT ON TABLE t_companies IS '파트너 회사 기본 정보';
 COMMENT ON TABLE t_company_details IS '파트너 회사 상세 정보 (연락처, 상세 이미지 등)';
-COMMENT ON TABLE t_inquiries IS '파트너사별 문의 테이블';
-COMMENT ON TABLE t_contents IS '푸드링크 공식 콘텐츠';
+COMMENT ON TABLE t_inquiries IS '외국인 방문자 문의 테이블 (시술/검진 관련)';
+COMMENT ON TABLE t_contents IS '공식 콘텐츠';
 
 COMMENT ON COLUMN t_companies.approval_status IS '승인 상태: pending(대기), approved(승인), rejected(거부)';
-COMMENT ON COLUMN t_companies.primary_category IS '1차 카테고리: manufacturing, packaging, nutrition, logistics';
-COMMENT ON COLUMN t_companies.secondary_category IS '2차 카테고리: processed, beverage, health, general';
-COMMENT ON COLUMN t_inquiries.company_id IS '문의 대상 파트너사 ID (외래 키)';
+COMMENT ON COLUMN t_companies.primary_category IS '1차 카테고리';
+COMMENT ON COLUMN t_companies.secondary_category IS '2차 카테고리';
+COMMENT ON COLUMN t_inquiries.category IS '문의 카테고리: procedure(시술 및 검진 정보 요청), visit(방문 및 여행일정 관련 문의), comprehensive(종합 요청)';
+COMMENT ON COLUMN t_inquiries.visit_timing IS '한국 방문 예정 시기: within_1month(1개월 이내), within_3months(1-3개월 이내), after_3months(3개월 이후)';
+COMMENT ON COLUMN t_inquiries.nationality IS '문의자 국적';
+COMMENT ON COLUMN t_inquiries.city IS '문의자 거주 도시';
 COMMENT ON COLUMN t_inquiries.is_answered IS '답변 완료 여부';
 COMMENT ON COLUMN t_contents.is_pinned IS '상단 고정 여부';

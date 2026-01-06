@@ -43,18 +43,20 @@ export class InquiryService {
   ): Promise<Inquiry> {
     const supabase = await createClient();
 
-    // 비밀번호 해싱
-    const passwordHash = await hashPassword(payload.password);
+    // 익명 문의이므로 자동 생성된 비밀번호 해시 사용
+    const passwordHash = await hashPassword("ANONYMOUS_INQUIRY_" + Date.now());
 
     const { data: inquiryData, error } = await supabase
       .from(Inquiry.tableName)
       .insert({
         category: payload.category,
-        content: payload.content,
-        attachments: payload.attachments || [],
-        name: payload.name,
+        visit_timing: payload.visitTiming,
         phone: payload.phone,
         email: payload.email,
+        nationality: payload.nationality,
+        city: payload.city,
+        content: payload.content,
+        attachments: payload.attachments || [],
         password_hash: passwordHash,
         ip_address: ipAddress || null,
         user_agent: userAgent || null,
@@ -281,11 +283,14 @@ export class InquiryService {
     // 업데이트할 데이터 준비
     const updateData: any = {};
     if (payload.category) updateData.category = payload.category;
-    if (payload.content) updateData.content = payload.content;
-    if (payload.attachments !== undefined) updateData.attachments = payload.attachments;
+    if (payload.visitTiming) updateData.visit_timing = payload.visitTiming;
     if (payload.name) updateData.name = payload.name;
     if (payload.phone) updateData.phone = payload.phone;
     if (payload.email) updateData.email = payload.email;
+    if (payload.nationality) updateData.nationality = payload.nationality;
+    if (payload.city) updateData.city = payload.city;
+    if (payload.content) updateData.content = payload.content;
+    if (payload.attachments !== undefined) updateData.attachments = payload.attachments;
 
     const { data: updatedData, error: updateError } = await supabase
       .from(Inquiry.tableName)
@@ -421,5 +426,183 @@ export class InquiryService {
     }
 
     return count || 0;
+  }
+
+  /**
+   * 모든 문의 데이터를 CSV 형식으로 내보내기 (관리자용)
+   * @param masterPassword 마스터 패스워드
+   * @returns CSV 문자열
+   */
+  static async exportInquiriesToCSV(
+    masterPassword: string
+  ): Promise<string> {
+    // 마스터 패스워드 검증
+    if (!verifyMasterPassword(masterPassword)) {
+      throw new AppError(
+        ERROR_CODES.INVALID_PASSWORD,
+        "마스터 패스워드가 올바르지 않습니다.",
+        401
+      );
+    }
+
+    const supabase = await createClient();
+
+    // 모든 문의 조회
+    const { data: inquiriesData, error } = await supabase
+      .from(Inquiry.tableName)
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new AppError(
+        ERROR_CODES.DATABASE_ERROR,
+        "문의 목록 조회에 실패했습니다.",
+        500
+      );
+    }
+
+    const inquiries = inquiriesData?.map((data) => new Inquiry(data)) || [];
+
+    // CSV 헤더
+    const headers = [
+      "ID",
+      "카테고리",
+      "방문예정시기",
+      "이름",
+      "전화번호",
+      "이메일",
+      "국적",
+      "거주도시",
+      "문의내용",
+      "첨부파일",
+      "답변완료",
+      "IP주소",
+      "User Agent",
+      "등록일시",
+      "수정일시",
+    ];
+
+    // CSV 행 생성
+    const rows = inquiries.map((inquiry) => {
+      return [
+        inquiry.id,
+        inquiry.category,
+        inquiry.visitTiming,
+        inquiry.name,
+        inquiry.phone,
+        inquiry.email,
+        inquiry.nationality,
+        inquiry.city,
+        `"${inquiry.content.replace(/"/g, '""')}"`, // 큰따옴표 이스케이프
+        inquiry.attachments.join("; "),
+        inquiry.isAnswered ? "예" : "아니오",
+        inquiry.ipAddress || "",
+        inquiry.userAgent || "",
+        inquiry.createdAt.toISOString(),
+        inquiry.updatedAt?.toISOString() || "",
+      ].join(",");
+    });
+
+    // CSV 문자열 생성 (UTF-8 BOM 추가)
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers.join(","), ...rows].join("\n");
+
+    return csv;
+  }
+
+  /**
+   * 필터링된 문의 데이터를 CSV 형식으로 내보내기 (관리자용)
+   * @param masterPassword 마스터 패스워드
+   * @param options 필터 옵션
+   * @returns CSV 문자열
+   */
+  static async exportFilteredInquiriesToCSV(
+    masterPassword: string,
+    options: Omit<GetInquiriesOptions, "page" | "limit"> = {}
+  ): Promise<string> {
+    // 마스터 패스워드 검증
+    if (!verifyMasterPassword(masterPassword)) {
+      throw new AppError(
+        ERROR_CODES.INVALID_PASSWORD,
+        "마스터 패스워드가 올바르지 않습니다.",
+        401
+      );
+    }
+
+    const supabase = await createClient();
+    const { category = "all", isAnswered } = options;
+
+    let query = supabase
+      .from(Inquiry.tableName)
+      .select("*");
+
+    // 카테고리 필터링
+    if (category !== "all") {
+      query = query.eq("category", category);
+    }
+
+    // 답변 상태 필터링
+    if (isAnswered !== undefined) {
+      query = query.eq("is_answered", isAnswered);
+    }
+
+    const { data: inquiriesData, error } = await query
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new AppError(
+        ERROR_CODES.DATABASE_ERROR,
+        "문의 목록 조회에 실패했습니다.",
+        500
+      );
+    }
+
+    const inquiries = inquiriesData?.map((data) => new Inquiry(data)) || [];
+
+    // CSV 헤더
+    const headers = [
+      "ID",
+      "카테고리",
+      "방문예정시기",
+      "이름",
+      "전화번호",
+      "이메일",
+      "국적",
+      "거주도시",
+      "문의내용",
+      "첨부파일",
+      "답변완료",
+      "IP주소",
+      "User Agent",
+      "등록일시",
+      "수정일시",
+    ];
+
+    // CSV 행 생성
+    const rows = inquiries.map((inquiry) => {
+      return [
+        inquiry.id,
+        inquiry.category,
+        inquiry.visitTiming,
+        inquiry.name,
+        inquiry.phone,
+        inquiry.email,
+        inquiry.nationality,
+        inquiry.city,
+        `"${inquiry.content.replace(/"/g, '""')}"`, // 큰따옴표 이스케이프
+        inquiry.attachments.join("; "),
+        inquiry.isAnswered ? "예" : "아니오",
+        inquiry.ipAddress || "",
+        inquiry.userAgent || "",
+        inquiry.createdAt.toISOString(),
+        inquiry.updatedAt?.toISOString() || "",
+      ].join(",");
+    });
+
+    // CSV 문자열 생성 (UTF-8 BOM 추가)
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers.join(","), ...rows].join("\n");
+
+    return csv;
   }
 }

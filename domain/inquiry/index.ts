@@ -7,6 +7,7 @@
 export {
   Inquiry,
   type InquiryCategory,
+  type VisitTiming,
   INQUIRY_CATEGORIES,
   INQUIRY_CATEGORY_LABELS,
   type CreateInquiryPayload,
@@ -24,3 +25,5 @@ export {
   toInquiryDto,
   toInquiryAdminDto,
 } from "./inquiry.model";
+
+export { InquiryService } from "./inquiry.service";

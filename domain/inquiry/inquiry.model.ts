@@ -3,40 +3,60 @@
 // --- 1. 순수 데이터 모델 (Plain Class & Enum) ---
 
 /**
- * 1대1 문의 카테고리
+ * 문의 카테고리 - 외국인 방문자용
  */
-export type InquiryCategory = "purchase" | "partnership" | "other";
+export type InquiryCategory = "procedure" | "visit" | "comprehensive";
 
 export const INQUIRY_CATEGORIES = {
-  PURCHASE: "purchase" as InquiryCategory, // 구매 문의
-  PARTNERSHIP: "partnership" as InquiryCategory, // 제휴 문의
-  OTHER: "other" as InquiryCategory, // 기타 제안
+  PROCEDURE: "procedure" as InquiryCategory, // 시술 및 검진 정보 요청
+  VISIT: "visit" as InquiryCategory, // 방문 및 여행일정 관련 문의
+  COMPREHENSIVE: "comprehensive" as InquiryCategory, // 종합 요청
 } as const;
 
 export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
-  purchase: "구매 문의",
-  partnership: "제휴 문의",
-  other: "기타 제안",
+  procedure: "시술 및 검진 정보 요청",
+  visit: "방문 및 여행일정 관련 문의",
+  comprehensive: "종합 요청",
+};
+
+/**
+ * 한국 방문 예정 시기
+ */
+export type VisitTiming = "within_1month" | "within_3months" | "after_3months";
+
+export const VISIT_TIMING = {
+  WITHIN_1MONTH: "within_1month" as VisitTiming,
+  WITHIN_3MONTHS: "within_3months" as VisitTiming,
+  AFTER_3MONTHS: "after_3months" as VisitTiming,
+} as const;
+
+export const VISIT_TIMING_LABELS: Record<VisitTiming, string> = {
+  within_1month: "1개월 이내",
+  within_3months: "1-3개월 이내",
+  after_3months: "3개월 이후",
 };
 
 /**
  * @class Inquiry
  * @description 데이터베이스의 't_inquiries' 레코드를 나타내는 데이터 클래스입니다.
- * 익명으로 작성 가능하며, 비밀번호로 보호됩니다.
+ * 외국인 방문자의 시술/검진 관련 문의를 위한 모델입니다.
  */
 export class Inquiry {
   public static readonly tableName = "t_inquiries";
 
   id: number;
-  category: InquiryCategory;
-  content: string; // 문의 내용
-  attachments: string[]; // 첨부파일 URL 배열 (문서, 이미지 등)
-  name: string; // 작성자 이름
-  phone: string; // 작성자 전화번호
-  email: string; // 작성자 이메일
+  category: InquiryCategory; // 문의 카테고리
+  visitTiming: VisitTiming; // 한국 방문 예정 시기
+  phone: string; // 전화번호
+  email: string; // 이메일
+  nationality: string; // 국적
+  city: string; // 거주 도시
+  content: string; // 추가 문의 내용
+  attachments: string[]; // 첨부파일 URL 배열
+  name?: string; // 작성자 이름 (익명 가능)
   passwordHash: string; // 비밀번호는 해시값으로 저장
-  ipAddress?: string | null; // IP 주소 (식별정보)
-  userAgent?: string | null; // User Agent (식별정보)
+  ipAddress?: string | null; // IP 주소
+  userAgent?: string | null; // User Agent
   isAnswered: boolean; // 답변 완료 여부
   createdAt: Date;
   updatedAt?: Date;
@@ -44,11 +64,14 @@ export class Inquiry {
   constructor(data: {
     id: number;
     category: InquiryCategory;
-    content: string;
-    attachments: string[];
-    name: string;
+    visit_timing: VisitTiming;
     phone: string;
     email: string;
+    nationality: string;
+    city: string;
+    content: string;
+    attachments: string[];
+    name?: string;
     password_hash: string;
     ip_address?: string | null;
     user_agent?: string | null;
@@ -58,11 +81,14 @@ export class Inquiry {
   }) {
     this.id = data.id;
     this.category = data.category;
+    this.visitTiming = data.visit_timing;
+    this.phone = data.phone;
+    this.email = data.email;
+    this.nationality = data.nationality;
+    this.city = data.city;
     this.content = data.content;
     this.attachments = data.attachments || [];
     this.name = data.name;
-    this.phone = data.phone;
-    this.email = data.email;
     this.passwordHash = data.password_hash;
     this.ipAddress = data.ip_address;
     this.userAgent = data.user_agent;
@@ -85,24 +111,15 @@ export class Inquiry {
 import { z } from "zod";
 
 /**
- * 1대1 문의 작성 시 사용될 유효성 검증 스키마
+ * 문의 작성 시 사용될 유효성 검증 스키마
  */
 export const CreateInquirySchema = z.object({
-  category: z.enum(["purchase", "partnership", "other"], {
+  category: z.enum(["procedure", "visit", "comprehensive"], {
     message: "카테고리를 선택해주세요.",
   }),
-  content: z
-    .string()
-    .min(10, { message: "문의 내용은 10자 이상 입력해주세요." })
-    .max(2000, { message: "문의 내용은 2000자를 넘을 수 없습니다." }),
-  attachments: z
-    .array(z.string().url("유효한 파일 URL이 필요합니다."))
-    .max(10, { message: "첨부파일은 최대 10개까지 추가할 수 있습니다." })
-    .optional(),
-  name: z
-    .string()
-    .min(2, { message: "이름은 2자 이상 입력해주세요." })
-    .max(50, { message: "이름은 50자를 넘을 수 없습니다." }),
+  visitTiming: z.enum(["within_1month", "within_3months", "after_3months"], {
+    message: "방문 예정 시기를 선택해주세요.",
+  }),
   phone: z
     .string()
     .regex(/^[0-9-+() ]+$/, { message: "유효한 전화번호 형식이 아닙니다." })
@@ -112,27 +129,32 @@ export const CreateInquirySchema = z.object({
     .string()
     .email("유효한 이메일 주소를 입력해주세요.")
     .max(100, { message: "이메일은 100자를 넘을 수 없습니다." }),
-  password: z
+  nationality: z
     .string()
-    .min(4, { message: "비밀번호는 4자 이상 입력해주세요." })
-    .max(50, { message: "비밀번호는 50자를 넘을 수 없습니다." }),
-});
-export type CreateInquiryPayload = z.infer<typeof CreateInquirySchema>;
-
-/**
- * 1대1 문의 수정 시 사용될 유효성 검증 스키마
- */
-export const UpdateInquirySchema = z.object({
-  category: z.enum(["purchase", "partnership", "other"]).optional(),
+    .min(2, { message: "국적을 입력해주세요." })
+    .max(50, { message: "국적은 50자를 넘을 수 없습니다." }),
+  city: z
+    .string()
+    .min(2, { message: "거주 도시를 입력해주세요." })
+    .max(100, { message: "거주 도시는 100자를 넘을 수 없습니다." }),
   content: z
     .string()
-    .min(10, { message: "문의 내용은 10자 이상 입력해주세요." })
     .max(2000, { message: "문의 내용은 2000자를 넘을 수 없습니다." })
-    .optional(),
+    .optional()
+    .default(""),
   attachments: z
     .array(z.string().url("유효한 파일 URL이 필요합니다."))
     .max(10, { message: "첨부파일은 최대 10개까지 추가할 수 있습니다." })
     .optional(),
+});
+export type CreateInquiryPayload = z.infer<typeof CreateInquirySchema>;
+
+/**
+ * 문의 수정 시 사용될 유효성 검증 스키마
+ */
+export const UpdateInquirySchema = z.object({
+  category: z.enum(["procedure", "visit", "comprehensive"]).optional(),
+  visitTiming: z.enum(["within_1month", "within_3months", "after_3months"]).optional(),
   name: z
     .string()
     .min(2, { message: "이름은 2자 이상 입력해주세요." })
@@ -148,6 +170,24 @@ export const UpdateInquirySchema = z.object({
     .string()
     .email("유효한 이메일 주소를 입력해주세요.")
     .max(100, { message: "이메일은 100자를 넘을 수 없습니다." })
+    .optional(),
+  nationality: z
+    .string()
+    .min(2, { message: "국적을 입력해주세요." })
+    .max(50, { message: "국적은 50자를 넘을 수 없습니다." })
+    .optional(),
+  city: z
+    .string()
+    .min(2, { message: "거주 도시를 입력해주세요." })
+    .max(100, { message: "거주 도시는 100자를 넘을 수 없습니다." })
+    .optional(),
+  content: z
+    .string()
+    .max(2000, { message: "문의 내용은 2000자를 넘을 수 없습니다." })
+    .optional(),
+  attachments: z
+    .array(z.string().url("유효한 파일 URL이 필요합니다."))
+    .max(10, { message: "첨부파일은 최대 10개까지 추가할 수 있습니다." })
     .optional(),
   password: z.string(), // 수정 시 현재 비밀번호 필요
 });
@@ -177,17 +217,20 @@ export type UpdateAnsweredStatusPayload = z.infer<
 // --- 3. 데이터 전송 객체 (DTO) ---
 
 /**
- * 클라이언트에 노출될 안전한 1대1 문의 정보의 형태를 정의하는 스키마
+ * 클라이언트에 노출될 안전한 문의 정보의 형태를 정의하는 스키마
  * 민감한 정보(비밀번호 해시, IP 주소 등)는 제외됩니다.
  */
 export const InquiryDtoSchema = z.object({
   id: z.number(),
-  category: z.enum(["purchase", "partnership", "other"]),
-  content: z.string(),
-  attachments: z.array(z.string()),
+  category: z.enum(["procedure", "visit", "comprehensive"]),
+  visitTiming: z.enum(["within_1month", "within_3months", "after_3months"]),
   name: z.string(),
   phone: z.string(),
   email: z.string().email(),
+  nationality: z.string(),
+  city: z.string(),
+  content: z.string(),
+  attachments: z.array(z.string()),
   isAnswered: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime().optional(),
@@ -217,11 +260,14 @@ export function toInquiryDto(inquiry: Inquiry): InquiryDto {
   return InquiryDtoSchema.parse({
     id: inquiry.id,
     category: inquiry.category,
-    content: inquiry.content,
-    attachments: inquiry.attachments,
+    visitTiming: inquiry.visitTiming,
     name: inquiry.name,
     phone: inquiry.phone,
     email: inquiry.email,
+    nationality: inquiry.nationality,
+    city: inquiry.city,
+    content: inquiry.content,
+    attachments: inquiry.attachments,
     isAnswered: inquiry.isAnswered,
     createdAt: inquiry.createdAt.toISOString(),
     updatedAt: inquiry.updatedAt?.toISOString(),
@@ -237,11 +283,14 @@ export function toInquiryAdminDto(inquiry: Inquiry): InquiryAdminDto {
   return InquiryAdminDtoSchema.parse({
     id: inquiry.id,
     category: inquiry.category,
-    content: inquiry.content,
-    attachments: inquiry.attachments,
+    visitTiming: inquiry.visitTiming,
     name: inquiry.name,
     phone: inquiry.phone,
     email: inquiry.email,
+    nationality: inquiry.nationality,
+    city: inquiry.city,
+    content: inquiry.content,
+    attachments: inquiry.attachments,
     isAnswered: inquiry.isAnswered,
     ipAddress: inquiry.ipAddress || null,
     userAgent: inquiry.userAgent || null,
