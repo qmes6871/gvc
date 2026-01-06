@@ -182,29 +182,10 @@ export function InquiryForm() {
 
         <div className="space-y-2">
           <Label htmlFor="content" className="text-base font-semibold">추가 문의 내용 (선택사항)</Label>
-          <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="추가로 문의하실 내용이 있다면 작성해주세요" className="w-full min-h-[200px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none" disabled={isSubmitting} />
+          <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="관심 있는 시술이나 검진, 방문 예정 시기, 궁금한 조건 등을 자유롭게 작성해주세요." className="w-full min-h-[200px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none" disabled={isSubmitting} />
           <p className="text-sm text-gray-500">{content.length} / 2000자</p>
         </div>
 
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">첨부 파일 (선택사항)</Label>
-          <p className="text-sm text-gray-500">최대 5개, 각 파일당 10MB까지 가능합니다</p>
-          <div className="space-y-2">
-            {attachmentFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700 truncate flex-1">{file.name}</span>
-                <button type="button" onClick={() => removeFile(index)} className="ml-2 text-red-500 hover:text-red-700"><X className="h-4 w-4" /></button>
-              </div>
-            ))}
-          </div>
-          {attachmentFiles.length < 5 && (
-            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors">
-              <Upload className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-600">파일 선택</span>
-              <input type="file" multiple onChange={handleFileChange} className="sr-only" disabled={isSubmitting} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" />
-            </label>
-          )}
-        </div>
 
         <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
           <h3 className="text-base font-semibold text-gray-900">안내 및 개인정보 활용 동의</h3>
