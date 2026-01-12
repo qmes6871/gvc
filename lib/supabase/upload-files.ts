@@ -96,7 +96,7 @@ export async function deleteImage(
 /**
  * 여러 파일을 Supabase Storage에 업로드하는 함수 (레거시 호환)
  * @param files 업로드할 파일 배열
- * @param bucket 버킷 이름 (기본값: "foodlink-public")
+ * @param bucket 버킷 이름
  * @returns 업로드된 파일의 public URL 배열. 실패한 경우 해당 위치에 null 반환
  */
 export async function uploadFiles(

@@ -23,7 +23,7 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-2">
               <Image
                 src={LogoImg.src}
-                alt="FoodLink Logo"
+                alt="Logo"
                 width={120}
                 height={40}
               />
